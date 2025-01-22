@@ -1,0 +1,88 @@
+### Registro de usuário
+POST http://localhost:5000/api/auth/register
+Content-Type: application/json
+
+{
+  "name": "Teste User",
+  "email": "teste@email.com",
+  "password": "123456",
+  "location": "São Paulo"
+}
+
+### Login de usuário
+POST  http://localhost:5000/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "teste@email.com",
+  "password": "123456"
+}
+
+### Criar Skill
+POST http://localhost:5000/api/skills
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY3OGRiZGQ5ZDFhM2MxYzQ1Y2UzYjFiMyIsImlhdCI6MTczNzM0MzA1MiwiZXhwIjoxNzM3NDI5NDUyfQ.UwtSC6CRV08r-1js44iaAuN1I69am4vC6HpgUQhL758
+
+{
+  "name": "Desenvolvimento React",
+  "description": "Desenvolvimento de aplicações web com React",
+  "category": "Programação",
+  "level": "Avançado",
+  "exchangePreferences": ["Design UI/UX", "Marketing Digital"]
+}
+
+### Obter todas as Skills
+GET http://localhost:5000/api/skills
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY3OGRiZGQ5ZDFhM2MxYzQ1Y2UzYjFiMyIsImlhdCI6MTczNzM0MzA1MiwiZXhwIjoxNzM3NDI5NDUyfQ.UwtSC6CRV08r-1js44iaAuN1I69am4vC6HpgUQhL758
+
+### Buscar com filtros
+GET http://localhost:5000/api/skills?category=Programação&level=Avançado
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY3OGRiZGQ5ZDFhM2MxYzQ1Y2UzYjFiMyIsImlhdCI6MTczNzM0MzA1MiwiZXhwIjoxNzM3NDI5NDUyfQ.UwtSC6CRV08r-1js44iaAuN1I69am4vC6HpgUQhL758
+
+### Buscar skill específica
+GET http://localhost:5000/api/skills/678dc071505e3f59d882a426
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY3OGRiZGQ5ZDFhM2MxYzQ1Y2UzYjFiMyIsImlhdCI6MTczNzM0MzA1MiwiZXhwIjoxNzM3NDI5NDUyfQ.UwtSC6CRV08r-1js44iaAuN1I69am4vC6HpgUQhL758
+
+### Atualizar skill
+PUT http://localhost:5000/api/skills/678dc071505e3f59d882a426
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY3OGRiZGQ5ZDFhM2MxYzQ1Y2UzYjFiMyIsImlhdCI6MTczNzM0MzA1MiwiZXhwIjoxNzM3NDI5NDUyfQ.UwtSC6CRV08r-1js44iaAuN1I69am4vC6HpgUQhL758
+
+{
+  "name": "Desenvolvimento React Atualizado",
+  "description": "Desenvolvimento de aplicações web com React atualizado",
+  "category": "Programação",
+  "level": "Especialista",
+  "exchangePreferences": ["Design UI/UX", "Marketing Digital"]
+}
+
+### Deletar skill
+DELETE http://localhost:5000/api/skills/678dc122010d69eceffe9b07
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY3OGRiZGQ5ZDFhM2MxYzQ1Y2UzYjFiMyIsImlhdCI6MTczNzM0MzA1MiwiZXhwIjoxNzM3NDI5NDUyfQ.UwtSC6CRV08r-1js44iaAuN1I69am4vC6HpgUQhL758
+
+### Iniciar um chat
+POST http://localhost:5000/api/chat/initiate
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY3OGRiZGQ5ZDFhM2MxYzQ1Y2UzYjFiMyIsImlhdCI6MTczNzM0MzA1MiwiZXhwIjoxNzM3NDI5NDUyfQ.UwtSC6CRV08r-1js44iaAuN1I69am4vC6HpgUQhL758
+
+{
+  "recipientId": "678dc071505e3f59d882a426",
+  "skillOffered": "678dc071505e3f59d882a426",
+  "skillRequested": "678dc071505e3f59d882a426"
+}
+
+### Listar chats do usuário
+GET http://localhost:5000/api/chat/user-chats
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY3OGRiZGQ5ZDFhM2MxYzQ1Y2UzYjFiMyIsImlhdCI6MTczNzM0MzA1MiwiZXhwIjoxNzM3NDI5NDUyfQ.UwtSC6CRV08r-1js44iaAuN1I69am4vC6HpgUQhL758
+
+### Obter mensagens de um chat
+GET http://localhost:5000/api/chat/678dc071505e3f59d882a426/messages
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY3OGRiZGQ5ZDFhM2MxYzQ1Y2UzYjFiMyIsImlhdCI6MTczNzM0MzA1MiwiZXhwIjoxNzM3NDI5NDUyfQ.UwtSC6CRV08r-1js44iaAuN1I69am4vC6HpgUQhL758
+
+### Arquivar chat
+PUT http://localhost:5000/api/chat/678dc071505e3f59d882a426/archive
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY3OGRiZGQ5ZDFhM2MxYzQ1Y2UzYjFiMyIsImlhdCI6MTczNzM0MzA1MiwiZXhwIjoxNzM3NDI5NDUyfQ.UwtSC6CRV08r-1js44iaAuN1I69am4vC6HpgUQhL758
+
+### Busca simples de habilidades
+GET http://localhost:5000/api/search/skills?query=React
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY3OGRiZGQ5ZDFhM2MxYzQ1Y2UzYjFiMyIsImlhdCI6MTczNzM0MzA1MiwiZXhwIjoxNzM3NDI5NDUyfQ.UwtSC6CRV08r-1js44iaAuN1I69am4vC6HpgUQhL758
