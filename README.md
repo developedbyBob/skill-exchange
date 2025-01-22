@@ -30,7 +30,7 @@ O Skill Exchange é uma plataforma que permite aos usuários trocar habilidades 
 
 1. Clone o repositório:
    ```bash
-   git clone https://github.com/seu-usuario/skill-exchange.git
+   git clone https://github.com/developedbyBob/skill-exchange.git
    cd skill-exchange
    ```
 
