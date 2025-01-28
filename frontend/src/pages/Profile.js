@@ -1,47 +1,31 @@
-// src/pages/Profile.js
-import { useState } from 'react';
-import {
-  Container,
-  Box,
-  Tabs,
-  TabList,
-  TabPanels,
-  Tab,
-  TabPanel,
-  useToast,
-} from '@chakra-ui/react';
+import React from 'react';
+import { Tabs } from '../components/ui';
 import ProfileInfo from '../components/Profile/ProfileInfo';
 import UserSkills from '../components/Profile/UserSkills';
 import ReviewsList from '../components/Profile/ReviewsList';
 
 const Profile = () => {
-  const [activeTab, setActiveTab] = useState(0);
-  const toast = useToast();
+  const tabs = [
+    {
+      label: 'Informações Pessoais',
+      content: <ProfileInfo />
+    },
+    {
+      label: 'Minhas Habilidades',
+      content: <UserSkills />
+    },
+    {
+      label: 'Avaliações',
+      content: <ReviewsList />
+    }
+  ];
 
   return (
-    <Container maxW="container.xl" py={8}>
-      <Box bg="white" borderRadius="lg" boxShadow="sm" overflow="hidden">
-        <Tabs index={activeTab} onChange={setActiveTab} isLazy>
-          <TabList px={4} borderBottomWidth="1px">
-            <Tab>Informações Pessoais</Tab>
-            <Tab>Minhas Habilidades</Tab>
-            <Tab>Avaliações</Tab>
-          </TabList>
-
-          <TabPanels>
-            <TabPanel>
-              <ProfileInfo />
-            </TabPanel>
-            <TabPanel>
-              <UserSkills />
-            </TabPanel>
-            <TabPanel>
-              <ReviewsList />
-            </TabPanel>
-          </TabPanels>
-        </Tabs>
-      </Box>
-    </Container>
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="bg-white rounded-lg shadow">
+        <Tabs tabs={tabs} />
+      </div>
+    </div>
   );
 };
 

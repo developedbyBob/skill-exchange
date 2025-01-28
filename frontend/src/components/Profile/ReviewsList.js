@@ -1,159 +1,144 @@
-// src/components/Profile/ReviewsList.js
-import { useEffect } from 'react';
-import {
-  VStack,
-  Box,
-  Text,
-  Flex,
-  Avatar,
-  Badge,
-  Divider,
-  Stack,
-  Icon,
-  Tabs,
-  TabList,
-  Tab,
-  TabPanels,
-  TabPanel,
-  HStack,
-} from '@chakra-ui/react';
-import { StarIcon } from '@chakra-ui/icons';
+import React from 'react';
 import { useQuery } from 'react-query';
-import { useAuth } from '../../context/AuthContext';
+import { Star, User } from 'lucide-react';
+import { Card, Badge, Tabs } from '../ui';
 import api from '../../services/api';
 
 const ReviewCard = ({ review }) => {
   return (
-    <Box
-      p={5}
-      borderWidth="1px"
-      borderRadius="lg"
-      bg="white"
-      boxShadow="sm"
-      _hover={{ boxShadow: 'md' }}
-      transition="all 0.2s"
-    >
-      <Flex justify="space-between" align="start">
-        <HStack spacing={4}>
-          <Avatar
-            size="md"
-            name={review.reviewer.name}
-            src={review.reviewer.avatar}
-          />
-          <Box>
-            <Text fontWeight="bold">{review.reviewer.name}</Text>
-            <Text fontSize="sm" color="gray.500">
-              {new Date(review.createdAt).toLocaleDateString()}
-            </Text>
-          </Box>
-        </HStack>
-        <HStack>
-          {[...Array(5)].map((_, i) => (
-            <Icon
-              key={i}
-              as={StarIcon}
-              color={i < review.rating ? "yellow.400" : "gray.300"}
-            />
-          ))}
-        </HStack>
-      </Flex>
+    <Card className="overflow-hidden">
+      <div className="p-4">
+        <div className="flex items-start justify-between">
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center">
+              {review.reviewer.avatar ? (
+                <img
+                  src={review.reviewer.avatar}
+                  alt={review.reviewer.name}
+                  className="w-10 h-10 rounded-full"
+                />
+              ) : (
+                <User size={20} className="text-gray-400" />
+              )}
+            </div>
+            <div>
+              <h3 className="font-medium">{review.reviewer.name}</h3>
+              <p className="text-sm text-gray-500">
+                {new Date(review.createdAt).toLocaleDateString()}
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center">
+            {[...Array(5)].map((_, i) => (
+              <Star
+                key={i}
+                size={16}
+                className={i < review.rating ? 'text-yellow-400 fill-current' : 'text-gray-300'}
+              />
+            ))}
+          </div>
+        </div>
 
-      <Divider my={4} />
-
-      <Stack spacing={3}>
-        <Box>
-          <Badge colorScheme="blue" mb={2}>
-            Habilidade: {review.skill.name}
+        <div className="mt-4">
+          <Badge variant="primary" className="mb-2">
+            {review.skill.name}
           </Badge>
-          <Text>{review.comment}</Text>
-        </Box>
-      </Stack>
-    </Box>
+          <p className="text-gray-600">{review.comment}</p>
+        </div>
+      </div>
+    </Card>
   );
 };
 
 const ReviewsList = () => {
-  const { user } = useAuth();
-
-  useEffect(() => {
-    if (!user) {
-      console.error('Usuário não autenticado');
-    }
-  }, [user]);
-
   // Buscar avaliações recebidas
   const { data: receivedReviews, isLoading: loadingReceived } = useQuery(
     ['reviews', 'received'],
     async () => {
-      if (!user?.id) {
-        throw new Error('ID do usuário não encontrado');
-      }
-      const response = await api.get(`/reviews/user/${user.id}`);
+      const response = await api.get('/reviews/received');
       return response.data.data;
-    },
-    {
-      enabled: !!user?.id,
     }
   );
 
-  // Buscar avaliações feitas
+  // Buscar avaliações realizadas
   const { data: givenReviews, isLoading: loadingGiven } = useQuery(
     ['reviews', 'given'],
     async () => {
-      if (!user?.id) {
-        throw new Error('ID do usuário não encontrado');
-      }
-      const response = await api.get(`/reviews/by-user/${user.id}`);
+      const response = await api.get('/reviews/given');
       return response.data.data;
-    },
-    {
-      enabled: !!user?.id,
     }
   );
 
+  const tabs = [
+    {
+      label: 'Avaliações Recebidas',
+      content: (
+        <div className="space-y-4">
+          {loadingReceived ? (
+            <div className="space-y-4">
+              {[1, 2, 3].map((i) => (
+                <Card key={i} className="animate-pulse p-4">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-10 h-10 bg-gray-200 rounded-full" />
+                    <div className="flex-1">
+                      <div className="h-4 bg-gray-200 rounded w-1/3" />
+                      <div className="h-3 bg-gray-200 rounded w-1/4 mt-2" />
+                    </div>
+                  </div>
+                  <div className="mt-4 h-16 bg-gray-200 rounded" />
+                </Card>
+              ))}
+            </div>
+          ) : receivedReviews?.length > 0 ? (
+            receivedReviews.map((review) => (
+              <ReviewCard key={review._id} review={review} />
+            ))
+          ) : (
+            <div className="text-center py-8 text-gray-500">
+              Você ainda não recebeu nenhuma avaliação
+            </div>
+          )}
+        </div>
+      )
+    },
+    {
+      label: 'Avaliações Realizadas',
+      content: (
+        <div className="space-y-4">
+          {loadingGiven ? (
+            <div className="space-y-4">
+              {[1, 2, 3].map((i) => (
+                <Card key={i} className="animate-pulse p-4">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-10 h-10 bg-gray-200 rounded-full" />
+                    <div className="flex-1">
+                      <div className="h-4 bg-gray-200 rounded w-1/3" />
+                      <div className="h-3 bg-gray-200 rounded w-1/4 mt-2" />
+                    </div>
+                  </div>
+                  <div className="mt-4 h-16 bg-gray-200 rounded" />
+                </Card>
+              ))}
+            </div>
+          ) : givenReviews?.length > 0 ? (
+            givenReviews.map((review) => (
+              <ReviewCard key={review._id} review={review} />
+            ))
+          ) : (
+            <div className="text-center py-8 text-gray-500">
+              Você ainda não realizou nenhuma avaliação
+            </div>
+          )}
+        </div>
+      )
+    }
+  ];
+
   return (
-    <Box p={4}>
-      <Tabs variant="enclosed">
-        <TabList>
-          <Tab>Avaliações Recebidas</Tab>
-          <Tab>Avaliações Realizadas</Tab>
-        </TabList>
-
-        <TabPanels>
-          <TabPanel>
-            <VStack spacing={4} align="stretch">
-              {loadingReceived ? (
-                <Text>Carregando avaliações...</Text>
-              ) : receivedReviews?.length > 0 ? (
-                receivedReviews.map((review) => (
-                  <ReviewCard key={review._id} review={review} />
-                ))
-              ) : (
-                <Text textAlign="center" color="gray.500">
-                  Nenhuma avaliação recebida ainda
-                </Text>
-              )}
-            </VStack>
-          </TabPanel>
-
-          <TabPanel>
-            <VStack spacing={4} align="stretch">
-              {loadingGiven ? (
-                <Text>Carregando avaliações...</Text>
-              ) : givenReviews?.length > 0 ? (
-                givenReviews.map((review) => (
-                  <ReviewCard key={review._id} review={review} />
-                ))
-              ) : (
-                <Text textAlign="center" color="gray.500">
-                  Você ainda não realizou nenhuma avaliação
-                </Text>
-              )}
-            </VStack>
-          </TabPanel>
-        </TabPanels>
-      </Tabs>
-    </Box>
+    <div>
+      <h2 className="text-xl font-semibold mb-6">Avaliações</h2>
+      <Tabs tabs={tabs} />
+    </div>
   );
 };
 

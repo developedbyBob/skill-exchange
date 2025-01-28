@@ -1,15 +1,6 @@
-// src/pages/Chat.js
-import { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
-import {
-  Container,
-  Grid,
-  Box,
-  useToast,
-  Text,
-  Center,
-  Spinner
-} from '@chakra-ui/react';
+import { useQuery, useMutation, useQueryClient } from 'react-query';
 import ChatList from '../components/Chat/ChatList';
 import ChatWindow from '../components/Chat/ChatWindow';
 import { useSocket } from '../context/SocketContext';
@@ -18,98 +9,72 @@ import api from '../services/api';
 
 const Chat = () => {
   const [selectedChat, setSelectedChat] = useState(null);
-  const [chats, setChats] = useState([]);
   const [messages, setMessages] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
   const { socket } = useSocket();
   const { user } = useAuth();
-  const toast = useToast();
   const location = useLocation();
+  const queryClient = useQueryClient();
 
-  // Função para buscar chats
-  const fetchChats = useCallback(async () => {
-    try {
-      setIsLoading(true);
+  // Buscar lista de chats
+  const { data: chats = [], isLoading } = useQuery(
+    'chats',
+    async () => {
       const response = await api.get('/chat/user-chats');
-      const chatsData = response.data.data || [];
-      setChats(chatsData);
-
-      // Se houver um chatId no state da navegação, seleciona ele
-      if (location.state?.chatId) {
-        const chat = chatsData.find(c => c._id === location.state.chatId);
-        if (chat) {
-          setSelectedChat(chat);
+      return response.data.data;
+    },
+    {
+      onSuccess: (data) => {
+        // Se houver um chatId no state da navegação, seleciona ele
+        if (location.state?.chatId) {
+          const chat = data.find(c => c._id === location.state.chatId);
+          if (chat) {
+            setSelectedChat(chat);
+          }
         }
       }
-    } catch (error) {
-      setError(error.message);
-      toast({
-        title: 'Erro ao carregar chats',
-        description: error.message,
-        status: 'error',
-        duration: 3000,
-      });
-    } finally {
-      setIsLoading(false);
     }
-  }, [location.state?.chatId, toast]);
+  );
 
-  // Carregar lista de chats
-  useEffect(() => {
-    if (user) {
-      fetchChats();
-    }
-  }, [user, fetchChats]);
-
-  // Carregar mensagens quando um chat é selecionado
+  // Buscar mensagens do chat selecionado
   const fetchMessages = useCallback(async () => {
-  if (!selectedChat) return;
+    if (!selectedChat) return;
 
-  try {
-    console.log('Buscando mensagens para o chat:', selectedChat._id);
-    console.log('Usuário atual:', user);
-    
-    const response = await api.get(`/chat/${selectedChat._id}/messages`);
-    
-    console.log('Resposta da API de mensagens:', response.data);
-
-    // Definir as mensagens diretamente da API
-    setMessages(response.data.data.messages);
-
-    // Entrar na sala do Socket.IO
-    socket?.emit('join chat', selectedChat._id);
-  } catch (error) {
-    console.error('Erro ao buscar mensagens:', error);
-    toast({
-      title: 'Erro ao carregar mensagens',
-      description: error.response?.data?.error || error.message,
-      status: 'error',
-      duration: 3000,
-    });
-  }
-}, [selectedChat, socket, toast, user]);
+    try {
+      const response = await api.get(`/chat/${selectedChat._id}/messages`);
+      setMessages(response.data.data.messages);
+      socket?.emit('join chat', selectedChat._id);
+    } catch (error) {
+      console.error('Erro ao buscar mensagens:', error);
+    }
+  }, [selectedChat, socket]);
 
   useEffect(() => {
     fetchMessages();
-  }, [fetchMessages, selectedChat]);
+  }, [fetchMessages]);
 
-  // Escutar novas mensagens via Socket.IO
-  useEffect(() => {
-    if (!socket) {
-      console.log('Socket not available');
-      return;
+  // Mutation para deletar chat
+  const deleteChatMutation = useMutation(
+    async (chatId) => {
+      await api.delete(`/chat/${chatId}`);
+    },
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries('chats');
+        if (selectedChat) {
+          setSelectedChat(null);
+          setMessages([]);
+        }
+      }
     }
-  
-    console.log('Setting up socket listeners');
-  
-    const handleMessageReceived = (newMessage) => {
-      console.log('Message received:', newMessage);
-  
+  );
+
+  // Socket.IO listeners
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleNewMessage = (newMessage) => {
       if (selectedChat?._id === newMessage.chatId) {
-        console.log('Message is for current chat');
-        setMessages((prev) => {
-          // Remover mensagem temporária se existir e adicionar a nova
+        setMessages(prev => {
           const filtered = prev.filter(msg => 
             msg._id !== newMessage._id && 
             !(msg.temp && msg.content === newMessage.content)
@@ -117,10 +82,10 @@ const Chat = () => {
           return [...filtered, newMessage];
         });
       }
-    
-      // Atualizar lista de chats
-      setChats((prevChats) => {
-        return prevChats.map((chat) => {
+
+      // Atualizar preview do chat na lista
+      queryClient.setQueryData('chats', (oldChats = []) => {
+        return oldChats.map(chat => {
           if (chat._id === newMessage.chatId) {
             return {
               ...chat,
@@ -129,175 +94,74 @@ const Chat = () => {
             };
           }
           return chat;
-        }).sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+        });
       });
     };
-  
-    socket.on('message received', handleMessageReceived);
-    socket.on('error', (error) => {
-      console.error('Socket error:', error);
-    });
-  
+
+    socket.on('message received', handleNewMessage);
+
     return () => {
-      console.log('Cleaning up socket listeners');
-      socket.off('message received', handleMessageReceived);
-      socket.off('error');
+      socket.off('message received', handleNewMessage);
     };
-  }, [socket, selectedChat, user.id]);
-  
-  // No handleSendMessage
+  }, [socket, selectedChat, queryClient]);
+
   const handleSendMessage = async (content) => {
-    if (!selectedChat || !content.trim()) {
-      console.log('Mensagem inválida ou nenhum chat selecionado');
-      return;
-    }
-  
-    console.log('Preparando para enviar mensagem');
-    
+    if (!selectedChat || !content.trim()) return;
+
     const tempMessage = {
       _id: `temp-${Date.now()}`,
       chatId: selectedChat._id,
       content: content.trim(),
       sender: {
         _id: user.id,
-        name: user.name,
-        email: user.email
+        name: user.name
       },
       createdAt: new Date().toISOString(),
       temp: true
     };
-    
+
+    setMessages(prev => [...prev, tempMessage]);
+
     try {
-      // Adicionar mensagem temporária imediatamente
-      setMessages(prevMessages => {
-        const updatedMessages = [...prevMessages, tempMessage];
-        return updatedMessages.sort((a, b) => 
-          new Date(a.createdAt) - new Date(b.createdAt)
-        );
-      });
-      
-      // Preparar dados para envio
-      const messageData = {
+      socket?.emit('new message', {
         chatId: selectedChat._id,
         content: content.trim()
-      };
-  
-      // Verificar disponibilidade do socket
-      if (!socket) {
-        console.error('Socket não disponível para enviar mensagem');
-        throw new Error('Conexão de socket não disponível');
-      }
-    
-      // Adicionar callback de confirmação
-      socket.emit('new message', messageData, (response) => {
-        console.log('Resposta do servidor ao enviar mensagem:', response);
-        
-        if (response && response.error) {
-          // Se houver erro no servidor
-          throw new Error(response.error);
-        }
       });
-  
-      console.log('Mensagem enviada com sucesso');
-  
     } catch (error) {
       console.error('Erro ao enviar mensagem:', error);
-      toast({
-        title: 'Erro ao enviar mensagem',
-        description: error.message,
-        status: 'error',
-        duration: 3000,
-      });
-  
-      // Remover mensagem temporária em caso de erro
-      setMessages(prevMessages => 
-        prevMessages.filter(msg => msg._id !== tempMessage._id)
-      );
+      setMessages(prev => prev.filter(msg => msg._id !== tempMessage._id));
     }
   };
 
-  const handleDeleteChat = useCallback(async (chatId) => {
-    if (!chatId) {
-      toast({
-        title: 'Erro ao remover chat',
-        description: 'ID do chat inválido',
-        status: 'error',
-        duration: 3000,
-      });
-      return;
+  const handleDeleteChat = async (chatId) => {
+    if (window.confirm('Tem certeza que deseja excluir esta conversa?')) {
+      await deleteChatMutation.mutateAsync(chatId);
     }
-
-    console.log(`Tentando remover o chat com ID: ${chatId}`);
-
-    try {
-      const response = await api.delete(`/chat/${chatId}`);
-      console.log('Resposta da API:', response);
-
-      toast({
-        title: 'Chat removido com sucesso',
-        status: 'success',
-        duration: 3000,
-      });
-      
-      if (selectedChat?._id === chatId) {
-        setSelectedChat(null);
-        setMessages([]);
-      }
-      
-      fetchChats();
-    } catch (error) {
-      console.error('Erro ao remover chat:', error.response || error.message);
-      console.log('Detalhes do erro:', error.response?.data);
-      toast({
-        title: 'Erro ao remover chat',
-        description: error.response?.data?.error || 'Ocorreu um erro ao remover o chat',
-        status: 'error',
-        duration: 3000,
-      });
-    }
-  }, [selectedChat, toast, fetchChats]);
-
-  if (isLoading) {
-    return (
-      <Center height="calc(100vh - 200px)">
-        <Spinner size="xl" />
-      </Center>
-    );
-  }
-
-  if (error) {
-    return (
-      <Center height="calc(100vh - 200px)">
-        <Text color="red.500">Erro ao carregar chats: {error}</Text>
-      </Center>
-    );
-  }
+  };
 
   return (
-    <Container maxW="container.xl" py={8}>
-      <Grid
-        templateColumns={{ base: '1fr', md: '300px 1fr' }}
-        gap={6}
-        height="calc(100vh - 200px)"
-      >
-        <ChatList
-          chats={chats}
-          selectedChat={selectedChat}
-          onSelectChat={setSelectedChat}
-          onDeleteChat={handleDeleteChat}
-        />
-        <Box
-          display={{ base: selectedChat ? 'block' : 'none', md: 'block' }}
-          height="100%"
-        >
+    <div className="max-w-7xl mx-auto px-4 py-8">
+      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6 h-[calc(100vh-12rem)]">
+        {/* Lista de Chats */}
+        <div className="md:col-span-1">
+          <ChatList
+            chats={chats}
+            selectedChat={selectedChat}
+            onSelectChat={setSelectedChat}
+            onDeleteChat={handleDeleteChat}
+          />
+        </div>
+
+        {/* Janela de Chat */}
+        <div className="md:col-span-2 lg:col-span-3">
           <ChatWindow
             chat={selectedChat}
             messages={messages}
             onSendMessage={handleSendMessage}
           />
-        </Box>
-      </Grid>
-    </Container>
+        </div>
+      </div>
+    </div>
   );
 };
 

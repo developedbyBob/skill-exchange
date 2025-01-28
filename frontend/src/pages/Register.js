@@ -1,25 +1,8 @@
-// src/pages/Register.js
-import { useState } from 'react';
-import {
-  Box,
-  Button,
-  Container,
-  FormControl,
-  FormLabel,
-  Input,
-  Stack,
-  Text,
-  useToast,
-  VStack,
-  Heading,
-  Link,
-  InputGroup,
-  InputRightElement,
-  IconButton,
-} from '@chakra-ui/react';
-import { ViewIcon, ViewOffIcon } from '@chakra-ui/icons';
+import React, { useState } from 'react';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { Button, Input, Card } from '../components/ui/Button';
+import { Eye, EyeOff } from 'lucide-react';
 
 const Register = () => {
   const [formData, setFormData] = useState({
@@ -31,9 +14,9 @@ const Register = () => {
   });
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  
+  const [error, setError] = useState('');
+
   const { register } = useAuth();
-  const toast = useToast();
   const navigate = useNavigate();
 
   const handleChange = (e) => {
@@ -47,15 +30,10 @@ const Register = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
+    setError('');
 
-    // Validar senha
     if (formData.password !== formData.confirmPassword) {
-      toast({
-        title: 'Erro no cadastro',
-        description: 'As senhas não coincidem',
-        status: 'error',
-        duration: 3000,
-      });
+      setError('As senhas não coincidem');
       setIsLoading(false);
       return;
     }
@@ -69,129 +47,118 @@ const Register = () => {
       };
 
       await register(userData);
-      
-      toast({
-        title: 'Conta criada com sucesso',
-        description: 'Bem-vindo ao Skills Exchange!',
-        status: 'success',
-        duration: 3000,
-      });
-
       navigate('/');
     } catch (error) {
-      toast({
-        title: 'Erro no cadastro',
-        description: error.message,
-        status: 'error',
-        duration: 3000,
-      });
+      setError(error.message);
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <Container maxW="container.sm" py={10}>
-      <VStack spacing={8} align="stretch">
-        <Box textAlign="center">
-          <Heading>Crie sua conta</Heading>
-          <Text mt={2} color="gray.600">
-            Comece a compartilhar suas habilidades hoje
-          </Text>
-        </Box>
+    <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+      <div className="sm:mx-auto sm:w-full sm:max-w-md">
+        <h2 className="text-center text-3xl font-extrabold text-gray-900">
+          Crie sua conta
+        </h2>
+        <p className="mt-2 text-center text-sm text-gray-600">
+          Comece a compartilhar suas habilidades hoje
+        </p>
+      </div>
 
-        <Box
-          as="form"
-          onSubmit={handleSubmit}
-          bg="white"
-          p={8}
-          borderRadius="lg"
-          boxShadow="sm"
-        >
-          <Stack spacing={4}>
-            <FormControl id="name" isRequired>
-              <FormLabel>Nome completo</FormLabel>
+      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
+        <Card className="py-8 px-4 sm:px-10">
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {error && (
+              <div className="bg-red-50 border-l-4 border-red-400 p-4">
+                <p className="text-sm text-red-700">{error}</p>
+              </div>
+            )}
+
+            <Input
+              label="Nome completo"
+              name="name"
+              value={formData.name}
+              onChange={handleChange}
+              required
+              placeholder="Seu nome"
+            />
+
+            <Input
+              label="Email"
+              type="email"
+              name="email"
+              value={formData.email}
+              onChange={handleChange}
+              required
+              placeholder="seu@email.com"
+            />
+
+            <Input
+              label="Localização"
+              name="location"
+              value={formData.location}
+              onChange={handleChange}
+              required
+              placeholder="Cidade, Estado"
+            />
+
+            <div className="relative">
               <Input
-                name="name"
-                value={formData.name}
+                label="Senha"
+                type={showPassword ? 'text' : 'password'}
+                name="password"
+                value={formData.password}
                 onChange={handleChange}
-                placeholder="Seu nome"
+                required
+                placeholder="••••••••"
               />
-            </FormControl>
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-9 text-gray-400 hover:text-gray-500"
+              >
+                {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+              </button>
+            </div>
 
-            <FormControl id="email" isRequired>
-              <FormLabel>Email</FormLabel>
-              <Input
-                type="email"
-                name="email"
-                value={formData.email}
-                onChange={handleChange}
-                placeholder="seu@email.com"
-              />
-            </FormControl>
+            <Input
+              label="Confirme a senha"
+              type="password"
+              name="confirmPassword"
+              value={formData.confirmPassword}
+              onChange={handleChange}
+              required
+              placeholder="••••••••"
+            />
 
-            <FormControl id="location" isRequired>
-              <FormLabel>Localização</FormLabel>
-              <Input
-                name="location"
-                value={formData.location}
-                onChange={handleChange}
-                placeholder="Cidade, Estado"
-              />
-            </FormControl>
+            <div>
+              <Button
+                type="submit"
+                variant="primary"
+                fullWidth
+                size="lg"
+                isLoading={isLoading}
+              >
+                Criar conta
+              </Button>
+            </div>
+          </form>
 
-            <FormControl id="password" isRequired>
-              <FormLabel>Senha</FormLabel>
-              <InputGroup>
-                <Input
-                  type={showPassword ? 'text' : 'password'}
-                  name="password"
-                  value={formData.password}
-                  onChange={handleChange}
-                  placeholder="********"
-                />
-                <InputRightElement>
-                  <IconButton
-                    size="sm"
-                    icon={showPassword ? <ViewOffIcon /> : <ViewIcon />}
-                    onClick={() => setShowPassword(!showPassword)}
-                    variant="ghost"
-                  />
-                </InputRightElement>
-              </InputGroup>
-            </FormControl>
-
-            <FormControl id="confirmPassword" isRequired>
-              <FormLabel>Confirme a senha</FormLabel>
-              <Input
-                type="password"
-                name="confirmPassword"
-                value={formData.confirmPassword}
-                onChange={handleChange}
-                placeholder="********"
-              />
-            </FormControl>
-
-            <Button
-              type="submit"
-              colorScheme="blue"
-              size="lg"
-              fontSize="md"
-              isLoading={isLoading}
-            >
-              Criar conta
-            </Button>
-          </Stack>
-        </Box>
-
-        <Text textAlign="center">
-          Já tem uma conta?{' '}
-          <Link as={RouterLink} to="/login" color="blue.500">
-            Faça login
-          </Link>
-        </Text>
-      </VStack>
-    </Container>
+          <div className="mt-6 text-center">
+            <p className="text-sm text-gray-600">
+              Já tem uma conta?{' '}
+              <RouterLink 
+                to="/login" 
+                className="font-medium text-primary-600 hover:text-primary-500"
+              >
+                Faça login
+              </RouterLink>
+            </p>
+          </div>
+        </Card>
+      </div>
+    </div>
   );
 };
 

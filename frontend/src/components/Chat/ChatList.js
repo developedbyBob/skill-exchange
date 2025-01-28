@@ -1,193 +1,114 @@
-// src/components/Chat/ChatList.js
-import {
-  VStack,
-  Box,
-  Text,
-  Avatar,
-  HStack,
-  Badge,
-  Input,
-  InputGroup,
-  InputLeftElement,
-  IconButton,
-  useToast,
-  Menu,
-  MenuButton,
-  MenuList,
-  MenuItem,
-  useDisclosure,
-  AlertDialog,
-  AlertDialogOverlay,
-  AlertDialogContent,
-  AlertDialogHeader,
-  AlertDialogBody,
-  AlertDialogFooter,
-  Button,
-  Icon,
-} from '@chakra-ui/react';
-import { SearchIcon, DeleteIcon } from '@chakra-ui/icons';
-import { useState, useRef } from 'react';
+import React, { useState } from 'react';
+import { Search, User, MoreVertical, Trash2 } from 'lucide-react';
+import { Input } from '../ui/Button';
 import { useAuth } from '../../context/AuthContext';
-import api from '../../services/api';
-
-const formatDate = (dateString) => {
-  if (!dateString) return '';
-  
-  const date = new Date(dateString);
-  if (isNaN(date.getTime())) return '';
-
-  const today = new Date();
-  const yesterday = new Date(today);
-  yesterday.setDate(yesterday.getDate() - 1);
-
-  // Se for hoje, mostra apenas a hora
-  if (date.toDateString() === today.toDateString()) {
-    return date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-  }
-  
-  // Se for ontem, mostra "Ontem"
-  if (date.toDateString() === yesterday.toDateString()) {
-    return 'Ontem';
-  }
-  
-  // Para outras datas, mostra dd/mm/yyyy
-  return date.toLocaleDateString('pt-BR', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric'
-  });
-};
-
-// Ícone customizado de três pontos verticais
-const ThreeDotsIcon = (props) => (
-  <Icon viewBox="0 0 24 24" {...props}>
-    <path
-      fill="currentColor"
-      d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"
-    />
-  </Icon>
-);
-
-const DeleteChatAlert = ({ isOpen, onClose, onConfirm }) => {
-  const cancelRef = useRef();
-
-  return (
-    <AlertDialog
-      isOpen={isOpen}
-      leastDestructiveRef={cancelRef}
-      onClose={onClose}
-    >
-      <AlertDialogOverlay>
-        <AlertDialogContent>
-          <AlertDialogHeader fontSize="lg" fontWeight="bold">
-            Apagar Chat
-          </AlertDialogHeader>
-
-          <AlertDialogBody>
-            Tem certeza que deseja apagar este chat? Esta ação não pode ser desfeita.
-          </AlertDialogBody>
-
-          <AlertDialogFooter>
-            <Button ref={cancelRef} onClick={onClose}>
-              Cancelar
-            </Button>
-            <Button colorScheme="red" onClick={onConfirm} ml={3}>
-              Apagar
-            </Button>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialogOverlay>
-    </AlertDialog>
-  );
-};
 
 const ChatPreview = ({ chat, isSelected, onClick, onDelete, currentUserId }) => {
-  const { isOpen, onOpen, onClose } = useDisclosure();
+  const [showMenu, setShowMenu] = useState(false);
   const otherUser = chat.participants.find(p => p._id !== currentUserId);
-  
+
   if (!otherUser) return null;
 
-  const handleDelete = async () => {
-    await onDelete(chat._id);
-    onClose();
+  const formatDate = (dateString) => {
+    if (!dateString) return '';
+    
+    const date = new Date(dateString);
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    if (date.toDateString() === today.toDateString()) {
+      return date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    }
+    
+    if (date.toDateString() === yesterday.toDateString()) {
+      return 'Ontem';
+    }
+    
+    return date.toLocaleDateString('pt-BR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    });
   };
 
   return (
-    <Box
-      p={4}
-      bg={isSelected ? 'blue.50' : 'white'}
-      _hover={{ bg: isSelected ? 'blue.50' : 'gray.50' }}
-      cursor="pointer"
-      borderRadius="md"
-      position="relative"
+    <div
+      className={`
+        relative px-4 py-3 cursor-pointer transition-colors
+        ${isSelected ? 'bg-primary-50' : 'hover:bg-gray-50'}
+      `}
+      onClick={onClick}
     >
-      <HStack spacing={3} onClick={onClick}>
-        <Avatar 
-          size="md" 
-          name={otherUser.name}
-          src={otherUser.avatar}
-          bg="pink.200"
-        />
-        <Box flex={1}>
-          <Text fontWeight="bold">
-            {otherUser.name}
-          </Text>
-          <Text 
-            fontSize="sm" 
-            color="gray.500"
-          >
-            {formatDate(chat.updatedAt || chat.lastMessage || chat.createdAt)}
-          </Text>
-        </Box>
-        
-        <Menu>
-          <MenuButton
-            as={IconButton}
-            icon={<ThreeDotsIcon />}
-            variant="ghost"
-            size="sm"
-            onClick={(e) => e.stopPropagation()}
-          />
-          <MenuList onClick={(e) => e.stopPropagation()}>
-            <MenuItem
-              icon={<DeleteIcon />}
-              color="red.500"
-              onClick={onOpen}
-            >
-              Apagar Chat
-            </MenuItem>
-          </MenuList>
-        </Menu>
-      </HStack>
+      <div className="flex items-center space-x-3">
+        <div className="flex-shrink-0">
+          {otherUser.avatar ? (
+            <img
+              src={otherUser.avatar}
+              alt={otherUser.name}
+              className="w-12 h-12 rounded-full"
+            />
+          ) : (
+            <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center">
+              <User size={24} className="text-gray-400" />
+            </div>
+          )}
+        </div>
 
-      <DeleteChatAlert
-        isOpen={isOpen}
-        onClose={onClose}
-        onConfirm={handleDelete}
-      />
-    </Box>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-baseline justify-between">
+            <h3 className="text-sm font-medium text-gray-900 truncate">
+              {otherUser.name}
+            </h3>
+            <span className="text-xs text-gray-500">
+              {formatDate(chat.updatedAt || chat.createdAt)}
+            </span>
+          </div>
+          {chat.lastMessage && (
+            <p className="text-sm text-gray-500 truncate">
+              {chat.lastMessage}
+            </p>
+          )}
+        </div>
+
+        <div className="relative">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowMenu(!showMenu);
+            }}
+            className="p-1 rounded-full hover:bg-gray-100"
+          >
+            <MoreVertical size={16} className="text-gray-400" />
+          </button>
+
+          {showMenu && (
+            <div 
+              className="absolute right-0 mt-1 w-48 bg-white rounded-md shadow-lg py-1 z-10"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDelete(chat._id);
+                  setShowMenu(false);
+                }}
+                className="flex items-center w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50"
+              >
+                <Trash2 size={16} className="mr-2" />
+                Excluir conversa
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
   );
 };
 
 const ChatList = ({ chats = [], selectedChat, onSelectChat, onDeleteChat }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const { user } = useAuth();
-  const toast = useToast();
-
-  const handleDeleteChat = async (chatId) => {
-    console.log(`Tentando deletar o chat com ID: ${chatId}`);
-    try {
-      await onDeleteChat(chatId);
-    } catch (error) {
-      console.error('Erro ao remover chat:', error.response || error.message);
-      toast({
-        title: 'Erro ao remover chat',
-        description: error.response?.data?.error || 'Ocorreu um erro ao remover o chat',
-        status: 'error',
-        duration: 3000,
-      });
-    }
-  };
 
   const filteredChats = chats.filter(chat => {
     const otherUser = chat.participants?.find(p => p._id !== user?.id);
@@ -196,33 +117,19 @@ const ChatList = ({ chats = [], selectedChat, onSelectChat, onDeleteChat }) => {
   });
 
   return (
-    <Box
-      borderWidth="1px"
-      borderRadius="lg"
-      overflow="hidden"
-      bg="white"
-      height="100%"
-    >
-      <Box p={4} borderBottomWidth="1px">
-        <InputGroup>
-          <InputLeftElement pointerEvents="none">
-            <SearchIcon color="gray.400" />
-          </InputLeftElement>
-          <Input
-            placeholder="Buscar conversas..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-        </InputGroup>
-      </Box>
+    <div className="flex flex-col h-full bg-white border rounded-lg overflow-hidden">
+      {/* Search */}
+      <div className="p-4 border-b">
+        <Input
+          placeholder="Buscar conversas..."
+          icon={<Search size={20} />}
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+        />
+      </div>
 
-      <VStack
-        spacing={0}
-        align="stretch"
-        overflowY="auto"
-        height="calc(100% - 80px)"
-        divider={<Box borderBottomWidth="1px" borderColor="gray.100" />}
-      >
+      {/* Chat List */}
+      <div className="flex-1 overflow-y-auto divide-y">
         {filteredChats.length > 0 ? (
           filteredChats.map((chat) => (
             <ChatPreview
@@ -230,21 +137,19 @@ const ChatList = ({ chats = [], selectedChat, onSelectChat, onDeleteChat }) => {
               chat={chat}
               isSelected={selectedChat?._id === chat._id}
               onClick={() => onSelectChat(chat)}
-              onDelete={handleDeleteChat}
+              onDelete={onDeleteChat}
               currentUserId={user?.id}
             />
           ))
         ) : (
-          <Box p={4}>
-            <Text color="gray.500" textAlign="center">
-              {searchQuery
-                ? 'Nenhuma conversa encontrada'
-                : 'Nenhuma conversa iniciada'}
-            </Text>
-          </Box>
+          <div className="p-4 text-center text-gray-500">
+            {searchQuery
+              ? 'Nenhuma conversa encontrada'
+              : 'Nenhuma conversa iniciada'}
+          </div>
         )}
-      </VStack>
-    </Box>
+      </div>
+    </div>
   );
 };
 

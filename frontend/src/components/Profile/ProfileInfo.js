@@ -1,38 +1,18 @@
-// src/components/Profile/ProfileInfo.js
-import { useState } from 'react';
-import {
-  VStack,
-  // Remova as importações não utilizadas
-  // FormControl,
-  // FormLabel,
-  Input,
-  Button,
-  // useToast,
-  Avatar,
-  Center,
-  Text,
-  HStack,
-  IconButton,
-  Textarea,
-  Box
-} from '@chakra-ui/react';
-import { EditIcon } from '@chakra-ui/icons';
+import React, { useState } from 'react';
+import { User, MapPin, Mail, Edit2 } from 'lucide-react';
+import { Button, Input, Card } from '../ui/Button';
 import { useAuth } from '../../context/AuthContext';
-import api from '../../services/api';
 
 const ProfileInfo = () => {
   const { user, updateUser } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  // Remova o uso de useToast
-  // const toast = useToast();
-
   const [formData, setFormData] = useState({
-    name: user.name,
-    email: user.email,
-    location: user.location,
-    bio: user.bio || '',
+    name: user?.name || '',
+    email: user?.email || '',
+    location: user?.location || '',
+    bio: user?.bio || ''
   });
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -45,126 +25,132 @@ const ProfileInfo = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
-
     try {
-      const response = await api.put('/users/profile', formData);
-      updateUser(response.data.data);
+      await updateUser(formData);
       setIsEditing(false);
-      
-      // Substitua o uso de toast por console.log ou outra alternativa
-      console.log('Perfil atualizado');
-      // toast({
-      //   title: 'Perfil atualizado',
-      //   status: 'success',
-      //   duration: 3000,
-      // });
     } catch (error) {
-      // Substitua o uso de toast por console.log ou outra alternativa
-      console.error('Erro ao atualizar perfil', error.message);
-      // toast({
-      //   title: 'Erro ao atualizar perfil',
-      //   description: error.message,
-      //   status: 'error',
-      //   duration: 3000,
-      // });
+      console.error('Erro ao atualizar perfil:', error);
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <VStack spacing={8} align="stretch" p={4}>
-      <Center>
-        <VStack spacing={4}>
-          <Avatar
-            size="2xl"
-            name={user.name}
-            src={user.avatar}
-            bg="blue.500"
-          />
-          <HStack>
-            <Text fontSize="2xl" fontWeight="bold">
-              {user.name}
-            </Text>
-            <IconButton
-              icon={<EditIcon />}
-              size="sm"
-              onClick={() => setIsEditing(!isEditing)}
-              aria-label="Editar perfil"
+    <Card>
+      <div className="p-6">
+        <div className="flex justify-between items-start mb-6">
+          <h2 className="text-xl font-semibold">Informações Pessoais</h2>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setIsEditing(!isEditing)}
+          >
+            <Edit2 size={18} className="mr-2" />
+            {isEditing ? 'Cancelar' : 'Editar'}
+          </Button>
+        </div>
+
+        {isEditing ? (
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <Input
+              label="Nome"
+              name="name"
+              value={formData.name}
+              onChange={handleChange}
+              required
             />
-          </HStack>
-          <Text color="gray.500">{user.email}</Text>
-        </VStack>
-      </Center>
 
-      {isEditing ? (
-        <form onSubmit={handleSubmit}>
-          <VStack spacing={4} width="100%" maxW="md" mx="auto">
-            {/* Substitua FormControl e FormLabel por Box e Text */}
-            <Box id="name">
-              <Text>Nome</Text>
-              <Input
-                name="name"
-                value={formData.name}
-                onChange={handleChange}
-              />
-            </Box>
+            <Input
+              label="Email"
+              type="email"
+              name="email"
+              value={formData.email}
+              onChange={handleChange}
+              required
+              disabled
+            />
 
-            <Box id="location">
-              <Text>Localização</Text>
-              <Input
-                name="location"
-                value={formData.location}
-                onChange={handleChange}
-              />
-            </Box>
+            <Input
+              label="Localização"
+              name="location"
+              value={formData.location}
+              onChange={handleChange}
+              required
+            />
 
-            <Box id="bio">
-              <Text>Biografia</Text>
-              <Textarea
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Biografia
+              </label>
+              <textarea
                 name="bio"
                 value={formData.bio}
                 onChange={handleChange}
-                placeholder="Conte um pouco sobre você..."
                 rows={4}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                placeholder="Conte um pouco sobre você..."
               />
-            </Box>
+            </div>
 
-            <HStack spacing={4} width="100%">
+            <div className="flex justify-end space-x-3">
               <Button
                 type="button"
-                onClick={() => setIsEditing(false)}
                 variant="outline"
-                width="50%"
+                onClick={() => setIsEditing(false)}
               >
                 Cancelar
               </Button>
               <Button
                 type="submit"
-                colorScheme="blue"
-                width="50%"
+                variant="primary"
                 isLoading={isLoading}
               >
                 Salvar
               </Button>
-            </HStack>
-          </VStack>
-        </form>
-      ) : (
-        <VStack spacing={4} width="100%" maxW="md" mx="auto" align="start">
-          <Box>
-            <Text fontWeight="bold">Localização</Text>
-            <Text>{formData.location}</Text>
-          </Box>
-          {formData.bio && (
-            <Box>
-              <Text fontWeight="bold">Biografia</Text>
-              <Text>{formData.bio}</Text>
-            </Box>
-          )}
-        </VStack>
-      )}
-    </VStack>
+            </div>
+          </form>
+        ) : (
+          <div className="space-y-6">
+            <div className="flex items-center space-x-4">
+              <div className="w-16 h-16 bg-primary-100 rounded-full flex items-center justify-center">
+                {user?.avatar ? (
+                  <img
+                    src={user.avatar}
+                    alt={user.name}
+                    className="w-16 h-16 rounded-full"
+                  />
+                ) : (
+                  <User size={32} className="text-primary-600" />
+                )}
+              </div>
+              <div>
+                <h3 className="text-xl font-medium">{user?.name}</h3>
+                <p className="text-gray-500 flex items-center mt-1">
+                  <MapPin size={16} className="mr-1" />
+                  {user?.location}
+                </p>
+              </div>
+            </div>
+
+            <div>
+              <p className="text-sm text-gray-500 flex items-center">
+                <Mail size={16} className="mr-1" />
+                {user?.email}
+              </p>
+            </div>
+
+            {user?.bio && (
+              <div>
+                <h4 className="text-sm font-medium text-gray-700 mb-1">
+                  Sobre mim
+                </h4>
+                <p className="text-gray-600">{user.bio}</p>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </Card>
   );
 };
 

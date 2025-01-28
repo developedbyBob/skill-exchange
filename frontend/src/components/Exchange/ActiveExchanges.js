@@ -1,46 +1,14 @@
-// src/components/Exchange/ActiveExchanges.js
-import { useState } from 'react';
-import {
-  VStack,
-  Box,
-  Text,
-  Button,
-  HStack,
-  Avatar,
-  Badge,
-  Progress,
-  useToast,
-  Modal,
-  ModalOverlay,
-  ModalContent,
-  ModalHeader,
-  ModalBody,
-  ModalFooter,
-  ModalCloseButton,
-  useDisclosure,
-  FormControl,
-  FormLabel,
-  Textarea,
-  NumberInput,
-  NumberInputField,
-  NumberInputStepper,
-  NumberIncrementStepper,
-  NumberDecrementStepper,
-} from '@chakra-ui/react';
+import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
-import { ChatIcon, StarIcon } from '@chakra-ui/icons';
+import { MessageCircle, Star } from 'lucide-react';
+import { Button, Card, Badge } from '../ui/Button';
 import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 
 const ExchangeCard = ({ exchange }) => {
+  const [showReviewModal, setShowReviewModal] = useState(false);
   const navigate = useNavigate();
-  const { isOpen, onOpen, onClose } = useDisclosure();
-  const toast = useToast();
   const queryClient = useQueryClient();
-  const [review, setReview] = useState({
-    rating: 5,
-    comment: '',
-  });
 
   const completeMutation = useMutation(
     async ({ exchangeId, reviewData }) => {
@@ -50,129 +18,89 @@ const ExchangeCard = ({ exchange }) => {
     {
       onSuccess: () => {
         queryClient.invalidateQueries('activeExchanges');
-        toast({
-          title: 'Troca concluída com sucesso',
-          status: 'success',
-          duration: 3000,
-        });
-        onClose();
-      },
-      onError: (error) => {
-        toast({
-          title: 'Erro ao concluir troca',
-          description: error.message,
-          status: 'error',
-          duration: 3000,
-        });
-      },
+        setShowReviewModal(false);
+      }
     }
   );
 
-  const handleComplete = () => {
-    completeMutation.mutate({
-      exchangeId: exchange._id,
-      reviewData: review,
-    });
-  };
-
   const handleChat = () => {
-    navigate(`/chat`, { state: { exchangeId: exchange._id } });
+    navigate('/chat', { state: { exchangeId: exchange._id } });
   };
 
   return (
-    <Box
-      p={5}
-      borderWidth="1px"
-      borderRadius="lg"
-      bg="white"
-      boxShadow="sm"
-    >
-      <HStack spacing={4} mb={4}>
-        <Avatar
-          size="md"
-          name={exchange.partner.name}
-          src={exchange.partner.avatar}
-        />
-        <Box flex={1}>
-          <Text fontWeight="bold">{exchange.partner.name}</Text>
-          <Text fontSize="sm" color="gray.500">
-            Iniciado em {new Date(exchange.startDate).toLocaleDateString()}
-          </Text>
-        </Box>
-        <Badge colorScheme="green">Em Andamento</Badge>
-      </HStack>
-
-      <Box mb={4}>
-        <Text fontWeight="bold">Progresso da Troca</Text>
-        <Progress value={exchange.progress} colorScheme="blue" mt={2} />
-      </Box>
-
-      <HStack spacing={4} justify="flex-end">
-        <Button
-          leftIcon={<ChatIcon />}
-          colorScheme="blue"
-          variant="outline"
-          onClick={handleChat}
-        >
-          Chat
-        </Button>
-        <Button
-          leftIcon={<StarIcon />}
-          colorScheme="green"
-          onClick={onOpen}
-        >
-          Concluir Troca
-        </Button>
-      </HStack>
-
-      {/* Modal de Conclusão e Avaliação */}
-      <Modal isOpen={isOpen} onClose={onClose}>
-        <ModalOverlay />
-        <ModalContent>
-          <ModalHeader>Concluir Troca e Avaliar</ModalHeader>
-          <ModalCloseButton />
-          <ModalBody>
-            <VStack spacing={4}>
-              <FormControl>
-                <FormLabel>Avaliação</FormLabel>
-                <NumberInput
-                  max={5}
-                  min={1}
-                  value={review.rating}
-                  onChange={(value) => setReview(prev => ({ ...prev, rating: Number(value) }))}
-                >
-                  <NumberInputField />
-                  <NumberInputStepper>
-                    <NumberIncrementStepper />
-                    <NumberDecrementStepper />
-                  </NumberInputStepper>
-                </NumberInput>
-              </FormControl>
-              <FormControl>
-                <FormLabel>Comentário</FormLabel>
-                <Textarea
-                  value={review.comment}
-                  onChange={(e) => setReview(prev => ({ ...prev, comment: e.target.value }))}
-                  placeholder="Como foi sua experiência?"
+    <Card>
+      <div className="p-6">
+        {/* Header */}
+        <div className="flex justify-between items-start mb-6">
+          <div className="flex items-center space-x-4">
+            <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center">
+              {exchange.partner.avatar ? (
+                <img
+                  src={exchange.partner.avatar}
+                  alt={exchange.partner.name}
+                  className="w-12 h-12 rounded-full"
                 />
-              </FormControl>
-            </VStack>
-          </ModalBody>
-          <ModalFooter>
-            <Button variant="ghost" mr={3} onClick={onClose}>
-              Cancelar
-            </Button>
-            <Button
-              colorScheme="green"
-              onClick={handleComplete}
-              isLoading={completeMutation.isLoading}
-            >
-              Concluir e Avaliar
-            </Button>
-          </ModalFooter>
-        </ModalContent>
-      </Modal>
-    </Box>
+              ) : (
+                <span className="text-xl font-medium text-gray-600">
+                  {exchange.partner.name.charAt(0)}
+                </span>
+              )}
+            </div>
+            <div>
+              <h3 className="font-medium text-gray-900">{exchange.partner.name}</h3>
+              <p className="text-sm text-gray-500">
+                Iniciado em {new Date(exchange.startDate).toLocaleDateString()}
+              </p>
+            </div>
+          </div>
+          <Badge variant="success">Em Andamento</Badge>
+        </div>
+
+        {/* Progress */}
+        <div className="mb-6">
+          <h4 className="text-sm font-medium text-gray-700 mb-2">Progresso da Troca</h4>
+          <div className="w-full bg-gray-200 rounded-full h-2">
+            <div
+              className="bg-primary-600 h-2 rounded-full transition-all duration-500"
+              style={{ width: `${exchange.progress}%` }}
+            />
+          </div>
+          <p className="text-sm text-gray-500 mt-1">{exchange.progress}% concluído</p>
+        </div>
+
+        {/* Actions */}
+        <div className="flex justify-end space-x-3">
+          <Button
+            variant="outline"
+            onClick={handleChat}
+            className="flex items-center"
+          >
+            <MessageCircle size={18} className="mr-2" />
+            Chat
+          </Button>
+          <Button
+            variant="primary"
+            onClick={() => setShowReviewModal(true)}
+            className="flex items-center"
+          >
+            <Star size={18} className="mr-2" />
+            Concluir Troca
+          </Button>
+        </div>
+      </div>
+
+      {/* Review Modal */}
+      {showReviewModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <Card className="w-full max-w-md">
+            <div className="p-6">
+              <h3 className="text-lg font-medium mb-4">Avaliar e Concluir Troca</h3>
+              {/* Add review form here */}
+            </div>
+          </Card>
+        </div>
+      )}
+    </Card>
   );
 };
 
@@ -185,20 +113,49 @@ const ActiveExchanges = () => {
     }
   );
 
+  if (isLoading) {
+    return (
+      <div className="grid grid-cols-1 gap-6">
+        {[1, 2, 3].map((i) => (
+          <Card key={i} className="animate-pulse">
+            <div className="p-6">
+              <div className="flex items-center space-x-4 mb-6">
+                <div className="w-12 h-12 bg-gray-200 rounded-full" />
+                <div className="space-y-2">
+                  <div className="h-4 bg-gray-200 rounded w-48" />
+                  <div className="h-3 bg-gray-200 rounded w-32" />
+                </div>
+              </div>
+              <div className="space-y-3">
+                <div className="h-2 bg-gray-200 rounded-full" />
+                <div className="h-8 bg-gray-200 rounded" />
+              </div>
+            </div>
+          </Card>
+        ))}
+      </div>
+    );
+  }
+
+  if (!exchanges?.length) {
+    return (
+      <div className="text-center py-12">
+        <h3 className="text-lg font-medium text-gray-900 mb-2">
+          Nenhuma troca ativa
+        </h3>
+        <p className="text-gray-500">
+          Suas trocas em andamento aparecerão aqui
+        </p>
+      </div>
+    );
+  }
+
   return (
-    <VStack spacing={4} align="stretch" p={4}>
-      {isLoading ? (
-        <Text>Carregando trocas ativas...</Text>
-      ) : exchanges?.length > 0 ? (
-        exchanges.map((exchange) => (
-          <ExchangeCard key={exchange._id} exchange={exchange} />
-        ))
-      ) : (
-        <Text textAlign="center" color="gray.500">
-          Nenhuma troca ativa no momento
-        </Text>
-      )}
-    </VStack>
+    <div className="grid grid-cols-1 gap-6">
+      {exchanges.map((exchange) => (
+        <ExchangeCard key={exchange._id} exchange={exchange} />
+      ))}
+    </div>
   );
 };
 
